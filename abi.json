@@ -1,0 +1,63 @@
+[
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "user",
+				"type": "address"
+			},
+			{
+				"components": [
+					{
+						"internalType": "string",
+						"name": "cheatType",
+						"type": "string"
+					},
+					{
+						"internalType": "string",
+						"name": "timestamp",
+						"type": "string"
+					}
+				],
+				"internalType": "struct CheatStore.Cheat[]",
+				"name": "cheats",
+				"type": "tuple[]"
+			}
+		],
+		"name": "addCheats",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "user",
+				"type": "address"
+			}
+		],
+		"name": "getCheats",
+		"outputs": [
+			{
+				"components": [
+					{
+						"internalType": "string",
+						"name": "cheatType",
+						"type": "string"
+					},
+					{
+						"internalType": "string",
+						"name": "timestamp",
+						"type": "string"
+					}
+				],
+				"internalType": "struct CheatStore.Cheat[]",
+				"name": "",
+				"type": "tuple[]"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	}
+]
