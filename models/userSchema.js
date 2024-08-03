@@ -83,7 +83,7 @@ const userSchema = new mongoose.Schema({
     },
     Score: {
         type: Number,
-        default: 0,
+        default:null
     },
     left: {
         type: Number,

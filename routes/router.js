@@ -645,4 +645,66 @@ router.post("/submit", async (req, res) => {
   }
 });
 
+
+router.get("/user-data", async (req, res) => {
+  const token = req.headers.authorization.split(" ")[1]; // Assuming the token is passed as a Bearer token
+
+  try {
+    // Verify the token
+    const decodedToken = jwt.verify(token, keysecret);
+
+    // Find the user by ID and token
+    const validuser = await userdb.findOne({
+      _id: decodedToken._id,
+      "tokens.token": token,
+    });
+
+    if (!validuser) {
+      return res.status(401).json({ message: "Invalid user or token" });
+    }
+
+    // Get the user's data
+    const userData = {
+      name: validuser.fname,
+      lastname: validuser.lname,
+      score: validuser.Score,
+    };
+
+    res.status(200).json(userData);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+});
+
+
+router.get('/user/stats', async (req, res) => {
+  const token = req.headers.authorization.split(" ")[1];
+
+  if (!token) {
+      return res.status(401).send('Authentication token is required');
+  }
+
+  try {
+      const decodedToken = jwt.verify(token, keysecret); // Replace with your JWT secret
+      const validuser = await userdb.findOne({
+        _id: decodedToken._id,
+        "tokens.token": token,
+      });
+
+      if (!validuser) {
+          return res.status(404).send('User not found');
+      }
+
+      const userData = {
+        left: validuser.left,
+        right: validuser.right,
+        Voice: validuser.Voice,
+      };
+  
+      res.status(200).json(userData);
+  } catch (e) {
+      res.status(400).send('Invalid token');
+  }
+});
 module.exports = router;
