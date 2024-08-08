@@ -544,10 +544,10 @@ router.post("/voice", limiter,async (req, res) => {
   const token = req.headers.authorization.split(" ")[1];
   const timestamp = Date.now();
   const utcDate = new Date(timestamp);
-  const istDate = new Date(utcDate.getTime() + 330 * 60); // Adding 5 hours 30 minutes
+  const istDate = new Date(utcDate.getTime() + 330 * 60); 
   const realdate = istDate.toLocaleString("en-IN", {
     timeZone: "Asia/Kolkata",
-  }); // Example: "7/18/2024, 12:48:00 PM"
+  }); 
 
   try {
     // Verify the token
@@ -705,6 +705,25 @@ router.get('/user/stats', async (req, res) => {
       res.status(200).json(userData);
   } catch (e) {
       res.status(400).send('Invalid token');
+  }
+});
+
+router.delete('/deleteUser/:id', async (req, res) => {
+  const userId = req.params.id;
+
+  try {
+    // Find the user by ID and delete them
+    const deletedUser = await userdb.findByIdAndDelete(userId);
+
+    if (!deletedUser) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // If the user was successfully deleted
+    return res.status(200).json({ message: 'User deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting user:', error);
+    return res.status(500).json({ message: 'Failed to delete user' });
   }
 });
 module.exports = router;
