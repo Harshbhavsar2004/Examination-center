@@ -3,7 +3,6 @@ const { mongoose } = require("mongoose");
 const examSchema = new mongoose.Schema({
     Creater :{
       type:String,
-      unique:true,
     },
     title: String,
     date: Date,
