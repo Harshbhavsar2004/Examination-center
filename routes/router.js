@@ -2,8 +2,8 @@ const { Web3 } = require("web3");
 
 const express = require("express");
 const router = new express.Router();
-const userdb  = require("../models/userSchema");
-
+const userdb = require("../models/userSchema");
+const examdata = require("../models/ExamdataSchema")
 const authenticate = require("../middleware/authenticate");
 const nodemailer = require("nodemailer");
 const jwt = require("jsonwebtoken");
@@ -29,7 +29,6 @@ web3.eth.accounts.wallet.add(serverWalletPrivateKey); // Add your server wallet 
 
 async function checkBalance() {
   const balance = await web3.eth.getBalance(process.env.SERVER_WALLET_ADDRESS);
-  console.log("Wallet Balance:", web3.utils.fromWei(balance, "ether"), "ETH");
 }
 
 checkBalance();
@@ -85,8 +84,6 @@ router.post(
       dob,
       course,
       batch,
-      gender,
-      nationality,
       password,
       cpassword,
     } = req.body;
@@ -109,8 +106,6 @@ router.post(
       !dob ||
       !course ||
       !batch ||
-      !gender ||
-      !nationality ||
       !password ||
       !cpassword
     ) {
@@ -135,8 +130,6 @@ router.post(
           dob,
           course,
           batch,
-          gender,
-          nationality,
           password,
           cpassword,
           photo,
@@ -165,7 +158,7 @@ router.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
   if (!email || !password) {
-    res.status(422).json({ error: "Fill All The Details" });
+    return res.status(422).json({ error: "Fill All The Details" });
   }
 
   try {
@@ -173,23 +166,29 @@ router.post("/login", async (req, res) => {
 
     if (userValid) {
       if (password !== userValid.password) {
-        res.status(422).json({ error: "Invalid Credentials" });
-      } else {
-        // token generate
-        const token = await userValid.generateAuthtoken();
-        console.log(token)
-        // cookiegenerate
-        res.cookie("usercookie", token, {
-          expires: new Date(Date.now() + 9000000),
-          httpOnly: true,
-        });
-
-        const result = {
-          userValid,
-          token,
-        };
-        res.status(201).json({ status: 201, result });
+        return res.status(422).json({ error: "Invalid Credentials" });
       }
+
+      // Generate token
+      const token = await userValid.generateAuthtoken();
+      console.log(token);
+
+      // Generate cookie
+      res.cookie("usercookie", token, {
+        expires: new Date(Date.now() + 9000000),
+        httpOnly: true,
+      });
+
+      // Include role in the result
+      const result = {
+        user: {
+          email: userValid.email,
+          role: userValid.Role, // Assuming 'role' field exists in the user document
+        },
+        token,
+      };
+
+      res.status(201).json({ status: 201, result });
     } else {
       res.status(401).json({ status: 401, message: "Invalid Credentials" });
     }
@@ -199,13 +198,14 @@ router.post("/login", async (req, res) => {
   }
 });
 
+
 router.get('/fetchusers', async (req, res) => {
   try {
-      const users = await userdb.find({}, 'fname lname Score Cheat');
-      res.status(200).json(users);
+    const users = await userdb.find({}, 'fname lname Score Cheat');
+    res.status(200).json(users);
   } catch (error) {
-      console.error('Error fetching users:', error);
-      res.status(500).json({ error: 'Server error' });
+    console.error('Error fetching users:', error);
+    res.status(500).json({ error: 'Server error' });
   }
 });
 
@@ -383,7 +383,8 @@ router.get("/score", async (req, res) => {
 
     // Get the user's Score
     const userScore = validuser.Score; // Assuming 'Score' is the field in your user schema to store Score
-
+    console.log(userScore);
+    
     res.status(200).json({ Score: userScore });
   } catch (error) {
     console.error(error);
@@ -439,11 +440,10 @@ router.get("/resetCounts/:userId", async (req, res) => {
 
 
 
-router.post("/left",limiter, async (req, res) => {
+router.post("/left", limiter, async (req, res) => {
   const { left } = req.body;
   console.log(left);
   const token = req.headers.authorization.split(" ")[1];
-  console.log(token); // Assuming the token is passed as a Bearer token
 
   try {
     // Verify the token
@@ -473,9 +473,9 @@ router.post("/left",limiter, async (req, res) => {
           },
         },
       },
-      { new: true } // Return the updated document
+      { new: true } 
     );
-    console.log("Valid User:", validuser);
+
 
     if (!validuser) {
       return res.status(401).json({ message: "Invalid user or token" });
@@ -494,8 +494,9 @@ router.post("/left",limiter, async (req, res) => {
   }
 });
 
-router.post("/right",limiter, async (req, res) => {
+router.post("/right", limiter, async (req, res) => {
   const { right } = req.body;
+  console.log(right)
   const token = req.headers.authorization.split(" ")[1]; // Assuming the token is passed as a Bearer token
   const timestamp = Date.now();
   const utcDate = new Date(timestamp);
@@ -528,7 +529,6 @@ router.post("/right",limiter, async (req, res) => {
       }, // Increment rightCount by 1
       { new: true } // Return the updated document
     );
-    console.log("Valid User:", validuser);
 
     if (!validuser) {
       return res.status(401).json({ message: "Invalid user or token" });
@@ -539,15 +539,15 @@ router.post("/right",limiter, async (req, res) => {
     res.status(500).json({ message: "Internal Server Error" });
   }
 });
-router.post("/voice", limiter,async (req, res) => {
+router.post("/voice", limiter, async (req, res) => {
   const { Voice } = req.body;
   const token = req.headers.authorization.split(" ")[1];
   const timestamp = Date.now();
   const utcDate = new Date(timestamp);
-  const istDate = new Date(utcDate.getTime() + 330 * 60); 
+  const istDate = new Date(utcDate.getTime() + 330 * 60);
   const realdate = istDate.toLocaleString("en-IN", {
     timeZone: "Asia/Kolkata",
-  }); 
+  });
 
   try {
     // Verify the token
@@ -573,13 +573,12 @@ router.post("/voice", limiter,async (req, res) => {
       },
       { new: true }
     );
-    console.log("Valid User:", validuser);
 
     if (!validuser) {
       return res.status(401).json({ message: "Invalid user or token" });
     }
 
-   
+
 
     res.status(200).json({ message: "Voice updated successfully" });
   } catch (error) {
@@ -588,9 +587,9 @@ router.post("/voice", limiter,async (req, res) => {
   }
 });
 
-router.post("/submit", async (req, res) => {
+router.post("/submit", limiter , async (req, res) => {
   const token = req.headers.authorization.split(" ")[1];
-  console.log(token); 
+  console.log(token);
 
   try {
     // Verify the token
@@ -602,7 +601,7 @@ router.post("/submit", async (req, res) => {
         "tokens.token": token,
       },
       {
-        Cheat: 1, 
+        Cheat: 1,
       }
     );
 
@@ -682,29 +681,29 @@ router.get('/user/stats', async (req, res) => {
   const token = req.headers.authorization.split(" ")[1];
 
   if (!token) {
-      return res.status(401).send('Authentication token is required');
+    return res.status(401).send('Authentication token is required');
   }
 
   try {
-      const decodedToken = jwt.verify(token, keysecret); // Replace with your JWT secret
-      const validuser = await userdb.findOne({
-        _id: decodedToken._id,
-        "tokens.token": token,
-      });
+    const decodedToken = jwt.verify(token, keysecret); // Replace with your JWT secret
+    const validuser = await userdb.findOne({
+      _id: decodedToken._id,
+      "tokens.token": token,
+    });
 
-      if (!validuser) {
-          return res.status(404).send('User not found');
-      }
+    if (!validuser) {
+      return res.status(404).send('User not found');
+    }
 
-      const userData = {
-        left: validuser.left,
-        right: validuser.right,
-        Voice: validuser.Voice,
-      };
-  
-      res.status(200).json(userData);
+    const userData = {
+      left: validuser.left,
+      right: validuser.right,
+      Voice: validuser.Voice,
+    };
+
+    res.status(200).json(userData);
   } catch (e) {
-      res.status(400).send('Invalid token');
+    res.status(400).send('Invalid token');
   }
 });
 
@@ -726,4 +725,223 @@ router.delete('/deleteUser/:id', async (req, res) => {
     return res.status(500).json({ message: 'Failed to delete user' });
   }
 });
+
+
+router.post('/exams', async (req, res) => {
+  const { Creater , title, date, startTime, endTime, questions } = req.body;
+  const token = req.headers.authorization.split(" ")[1]; // Assuming Bearer token
+  
+  try {
+    // Verify the token
+    const decodedToken = jwt.verify(token, keysecret);
+
+    // Create a new exam document
+    const newExam = new examdata({
+      Creater,
+      title,
+      date,
+      startTime,
+      endTime,
+      questions,
+      tokens: [token], // Store the token in an array
+    });
+
+    // Save the exam to the database
+    const savedExam = await newExam.save();
+    
+    res.status(201).json({
+      message: 'Exam created successfully',
+      exam: savedExam,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Internal Server Error' });
+  }
+});
+
+router.put('/exams/:examId', async (req, res) => {
+  const { examId } = req.params; // Get examId from URL
+  const { questions } = req.body;
+  console.log('Received questions:', questions); 
+  const token = req.headers.authorization.split(" ")[1]; // Assuming Bearer token
+  
+  try {
+    // Verify the token
+    const decodedToken = jwt.verify(token, keysecret);
+
+    // Find the exam and update questions
+    const updatedExam = await examdata.findByIdAndUpdate(
+      examId,
+      { $set: { questions } },
+      { new: true }
+    );
+
+    if (!updatedExam) {
+      return res.status(404).json({ message: 'Exam not found' });
+    }
+
+    res.status(200).json({
+      message: 'Questions added successfully',
+      exam: updatedExam,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Internal Server Error' });
+  }
+});
+
+router.get('/exams', async (req, res) => {
+  const userEmail = req.query.email;
+
+  try {
+    const exams = await examdata.find({ Creater: userEmail });
+    res.status(200).json({ exams });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.delete('/exams', async (req, res) => {
+  const { title, email } = req.body;
+
+  try {
+    await examdata.deleteOne({ title, createdBy: email });
+    res.status(200).json({ message: 'Exam deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to delete exam' });
+  }
+});
+
+
+
+
+router.get('/users', async (req, res) => {
+  try {
+      const users = await userdb.find({});
+      res.status(200).json(users);
+  } catch (error) {
+      res.status(500).json({ error: error.message });
+  }
+});
+
+
+router.get("/exams/users", async (req, res) => {
+  try {
+    const exams = await examdata.find();
+    res.json(exams);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+router.get('/exams/:id', async (req, res) => {
+  try {
+    const exam = await examdata.findById(req.params.id);
+    if (!exam) {
+      return res.status(404).json({ message: 'Exam not found' });
+    }
+    res.json(exam);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Example Express.js route
+router.post("/promote-to-admin", async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    // Find the user by email
+    const user = await userdb.findOne({ email });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Update the user's role to admin
+    user.Role = "admin";
+    await user.save();
+
+    res.status(200).json({ message: "User promoted to admin successfully" });
+  } catch (error) {
+    console.error("Error promoting user:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+
+// Route to update exam with a new user entry (name and score)
+// Route to update exam with a new user entry (name and score)
+router.patch('/exams/:id/add-user', async (req, res) => {
+  const { name, score } = req.body;
+
+  try {
+    const exam = await examdata.findById(req.params.id);
+    if (!exam) {
+      return res.status(404).json({ message: 'Exam not found' });
+    }
+
+    // Add new user data to the Users array
+    exam.Users.push({ name, score });
+
+    // Save the updated exam
+    await exam.save();
+
+    res.json({ message: 'User data added successfully', exam });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+
+router.get('/results', async (req, res) => {
+  const { name } = req.query;
+
+  // Log the request for debugging purposes
+  console.log('Received query name:', name);
+
+  // Check if the name parameter is provided
+  if (!name) {
+    return res.status(400).json({ message: 'Name query parameter is required' });
+  }
+
+  try {
+    // Find the exam document where any user in the Users array has the specified name
+    const exam = await examdata.findOne({
+      'Users.name': name
+    });
+
+    // If no exam is found, respond with a 404 status
+    if (!exam) {
+      return res.status(404).json({ message: 'Result not found' });
+    }
+
+    // Find the specific user within the Users array
+    const user = exam.Users.find(user => user.name === name);
+
+    if (!user) {
+      return res.status(404).json({ message: 'Result not found' });
+    }
+
+    // Respond with the full exam document and the specific user details
+    res.json({
+      exam: {
+        Creater: exam.Creater,
+        title: exam.title,
+        date: exam.date,
+        Users: [user]
+      }
+    });
+  } catch (error) {
+    // Log the error for debugging
+    console.error('Server error:', error);
+    // Respond with a 500 status code and error message
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+
+
 module.exports = router;

@@ -44,14 +44,6 @@ const userSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
-    gender: {
-        type: String,
-        required: true,
-    },
-    nationality: {
-        type: String,
-        required: true,
-    },
     password: {
         type: String,
         required: true,
@@ -105,6 +97,10 @@ const userSchema = new mongoose.Schema({
     ],
     txUrl: {
         type: String,
+    },
+    Role:{
+        type:String,
+        default: "user",
     }
 
 });
