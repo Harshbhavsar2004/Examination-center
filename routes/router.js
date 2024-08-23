@@ -541,6 +541,7 @@ router.post("/right", limiter, async (req, res) => {
 });
 router.post("/voice", limiter, async (req, res) => {
   const { Voice } = req.body;
+  console.log(Voice)
   const token = req.headers.authorization.split(" ")[1];
   const timestamp = Date.now();
   const utcDate = new Date(timestamp);
@@ -837,6 +838,7 @@ router.get("/exams/users", async (req, res) => {
 router.get('/exams/:id', async (req, res) => {
   try {
     const exam = await examdata.findById(req.params.id);
+    console.log(exam)
     if (!exam) {
       return res.status(404).json({ message: 'Exam not found' });
     }
@@ -908,32 +910,32 @@ router.get('/results', async (req, res) => {
   }
 
   try {
-    // Find the exam document where any user in the Users array has the specified name
-    const exam = await examdata.findOne({
+    // Find all exam documents where any user in the Users array has the specified name
+    const exams = await examdata.find({
       'Users.name': name
     });
 
-    // If no exam is found, respond with a 404 status
-    if (!exam) {
-      return res.status(404).json({ message: 'Result not found' });
+    // If no exams are found, respond with a 404 status
+    if (exams.length === 0) {
+      return res.status(404).json({ message: 'No results found' });
     }
 
-    // Find the specific user within the Users array
-    const user = exam.Users.find(user => user.name === name);
-
-    if (!user) {
-      return res.status(404).json({ message: 'Result not found' });
-    }
-
-    // Respond with the full exam document and the specific user details
-    res.json({
-      exam: {
-        Creater: exam.Creater,
-        title: exam.title,
-        date: exam.date,
-        Users: [user]
-      }
+    // Map the results to include all instances of the user within each exam
+    const results = exams.map(exam => {
+      // Find all instances of the user in the current exam
+      const users = exam.Users.filter(user => user.name === name);
+      return {
+        exam: {
+          Creater: exam.Creater,
+          title: exam.title,
+          date: exam.date,
+          Users: users // Include all found instances
+        }
+      };
     });
+
+    // Respond with the array of results
+    res.json(results);
   } catch (error) {
     // Log the error for debugging
     console.error('Server error:', error);
@@ -941,6 +943,8 @@ router.get('/results', async (req, res) => {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
+
+
 
 
 
